@@ -1,20 +1,29 @@
 package com.yalt.skinwalker.entity.custom;
 
-import com.yalt.skinwalker.sound.SkinWalkerSounds;
-import net.minecraft.sounds.SoundSource;
+import com.yalt.skinwalker.sound.ModSounds;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 
 import java.util.List;
+import java.util.Random;
+
 public class SkinWalkerBaitingGoal extends Goal {
     private final SkinWalkerEntity mob;
+    private long lastSoundTime = 0;
+    private static final double TARGET_THRESHOLD = 4.0;
+
+    private double targetX, targetY, targetZ; // Target location for mob
+    private LivingEntity targetPlayer; // Target Player to keep distance from
+    private double targetSelfX, targetSelfY, targetSelfZ; // Initial coordinates of mob
+    private double distanceToPlayer;
+    private boolean atTargetLocation = false;
+
     private final double speed;
     private final float maxDistance;
     private final float minDistance;
-    private LivingEntity target;
-    private int currentBaitSoundIndex = 0;
+
 
 
 
@@ -25,63 +34,125 @@ public class SkinWalkerBaitingGoal extends Goal {
         this.minDistance = minDistance;
     }
 
+
     @Override
     public boolean canUse() {
-        Player closestPlayer = null;
-        if (mob.baitingTime > 0) {
-            List<Player> players = mob.level.getEntitiesOfClass(Player.class, mob.getBoundingBox().inflate(maxDistance));
-            if (players.isEmpty()) {
-                return false;
-            }
 
-            closestPlayer = players.get(0);
-            if (mob.distanceToSqr(closestPlayer) <= minDistance * minDistance) {
-                return false;
-            }
-
+        if (mob.isBaiting()) {
+            return false; // Already in Baiting behavior, don't restart
         }
 
-        this.target = closestPlayer;
-        return true;
-    }
+//        if (targetPlayer != null || !atTargetLocation) {
+//            return false; // Don't restart the goal if already following a player
+//        }
 
-    public boolean isActive() {
-        return canUse();
-    }
+        List<Player> players = mob.level.getEntitiesOfClass(Player.class, mob.getBoundingBox().inflate(maxDistance));
+        if (players.isEmpty()) {
+            return false;
+        }
 
+        Player closestPlayer = players.get(0);
+        if (mob.distanceToSqr(closestPlayer) <= minDistance * minDistance || mob.distanceToSqr(closestPlayer) >= 40 * 40) {
+            return false;
+        }
+        if (mob.baitingTime < 6000) {
+            targetPlayer = closestPlayer;
+            distanceToPlayer = mob.distanceToSqr(closestPlayer);
+            targetSelfX = mob.getX();
+            targetSelfY = mob.getY();
+            targetSelfZ = mob.getZ();
+
+            return true;
+        }
+        return false;
+    }
 
     @Override
     public void start() {
-        mob.getNavigation().moveTo(target, speed);
-        playNoise(); // Play noise
+        mob.setBaiting(true);
+        if(!atTargetLocation) {
+            int minDistanceFromPlayer = 40;
+            int maxDistanceFromPlayer = 60;
+            double distance = minDistanceFromPlayer + new Random().nextFloat() * (maxDistanceFromPlayer - minDistanceFromPlayer);
+            double angle = new Random().nextFloat() * 2 * Math.PI;
+            targetX = targetSelfX + distance * Math.cos(angle);
+            targetY = targetSelfY;
+            targetZ = targetSelfZ + distance * Math.sin(angle);
+            System.out.println("Using Baiting Goal navigating to " + targetX + ", " + targetY + ", " + targetZ);
+
+            mob.getNavigation().moveTo(targetX, targetY, targetZ, speed);
+        }
     }
+
 
     @Override
     public void stop() {
-        target = null;
+        mob.setBaiting(false);
+        targetPlayer = null;
+        atTargetLocation = false;
         mob.getNavigation().stop();
     }
 
     @Override
     public void tick() {
-        if (mob.distanceToSqr(target) <= minDistance * minDistance) {
-            stopNoise(); // Stop playing noise
-        } else {
-            playNoise(); // Play noise
+        double distanceToTarget = mob.distanceToSqr(targetX, targetY, targetZ);
+
+        if (!atTargetLocation && distanceToTarget <= TARGET_THRESHOLD * TARGET_THRESHOLD) {
+            System.out.println("Reached target location");
+            atTargetLocation = true;
         }
 
-        mob.getNavigation().moveTo(target, speed);
-    }
+        if (atTargetLocation) {
+            if (mob.distanceToSqr(targetPlayer) >= 100 * 100) {
+                atTargetLocation = false;
+                start();
+            } else {
+                mob.baitingTime++;
+                playNoise();
+                watchPlayer();
+            }
+        }
+        else {
+            mob.getNavigation().moveTo(targetX, targetY, targetZ, speed);
+            System.out.println("Not at location yet Distance to target" + Math.sqrt(distanceToTarget));
+            System.out.println("Target coordinates: " + targetX + ", " + targetY + ", " + targetZ);
+            System.out.println("Mob coordinates: " + mob.getX() + ", " + mob.getY() + ", " + mob.getZ());
+        }
 
+        return;
+    }
+    private void watchPlayer() {
+        if (targetPlayer != null) {
+//            System.out.println("Watching Player");
+            mob.getLookControl().setLookAt(targetPlayer, mob.getMaxHeadYRot(), mob.getMaxHeadXRot());
+            return;
+        }
+    }
     private void playNoise() {
-        if (SkinWalkerSounds.BAIT_SOUNDS.length > 0) {
-            int randomIndex = mob.getRandom().nextInt(SkinWalkerSounds.BAIT_SOUNDS.length); // Choose a random index
-            Level level = (Level) mob.level; // Make sure to get the level correctly
-            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SkinWalkerSounds.BAIT_SOUNDS[randomIndex].get(), SoundSource.PLAYERS, 2.0F, 1.0F);
+        System.out.println("Playing Noise");
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastSoundTime < 30000 && lastSoundTime != 0 ) {
+            System.out.println("Used sound to recently currentTime - lastSoundTime: " + (currentTime - lastSoundTime));
+            return;
         }
-    }
 
-    private void stopNoise() {
-        // Logic to stop playing noise
+        Random random = new Random();
+        int randomNumber = random.nextInt(2) + 1;
+        switch (randomNumber) {
+            case 1 -> {
+                mob.playEntitySound((SoundEvent) ModSounds.SKINWALKER_BAIT1.get(), 4.0F, 1.0F);
+                lastSoundTime = currentTime; // Update the timestamp
+                return;
+            }
+            case 2 -> {
+                mob.playEntitySound((SoundEvent) ModSounds.SKINWALKER_BAIT2.get(), 4.0F, 1.0F);
+                lastSoundTime = currentTime; // Update the timestamp
+                return;
+            }
+            default -> {
+                System.out.println("Unexpected number generated.");
+                return;
+            }
+        }
     }
 }

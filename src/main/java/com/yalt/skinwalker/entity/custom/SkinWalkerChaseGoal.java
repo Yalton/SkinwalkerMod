@@ -1,18 +1,21 @@
 package com.yalt.skinwalker.entity.custom;
 
-import com.yalt.skinwalker.sound.SkinWalkerSounds;
-import net.minecraft.sounds.SoundSource;
+import com.yalt.skinwalker.sound.ModSounds;
+import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.Random;
 
 public class SkinWalkerChaseGoal extends Goal {
     private final SkinWalkerEntity mob;
+    private long lastSoundTime = 0;
+
     private final double speed;
     private LivingEntity target;
     private int currentChaseSoundIndex = 0;
@@ -30,12 +33,21 @@ public class SkinWalkerChaseGoal extends Goal {
             return false;
         }
 
+        Player closestPlayer = players.get(0);
+
+        if (closestPlayer != null) {
+            double distance = closestPlayer.distanceTo(mob);
+            if (distance < 6.0D) {
+                return true;
+            }
+        }
         target = players.get(0);
-        return true;
+        return false;
     }
 
     @Override
     public void start() {
+        System.out.println("Using Chasing Goal");
         chasePlayer();
     }
 
@@ -47,20 +59,27 @@ public class SkinWalkerChaseGoal extends Goal {
 
     @Override
     public void tick() {
-        if (mob.distanceToSqr(target) <= 2.0) { // Attack range
+        if (target == null) {
+            return;
+        }
+        if (mob.distanceToSqr(target) <= 4.0) { // Attack range
             attackPlayer();
         } else {
             chasePlayer();
-            breakBlocksInPath();
         }
     }
 
     private void chasePlayer() {
-        mob.getNavigation().moveTo(target, speed);
+        if (target != null) {
+            playNoise();
+            breakBlocksInPath();
+            mob.getNavigation().moveTo(target, speed);
+        } else {
+            return; // No target
+        }
     }
 
     private void attackPlayer() {
-        // Logic to attack the player
         mob.doHurtTarget(target);
     }
 
@@ -85,14 +104,42 @@ public class SkinWalkerChaseGoal extends Goal {
         if (!blockState.isAir() && blockState.getDestroySpeed(level, blockInPath) >= 0) {
             level.destroyBlock(blockInPath, false);
         }
+
+        // Move one block up from the current position
+        BlockPos blockAbove = blockInPath.above(); // Get the block above
+        BlockState blockAboveState = level.getBlockState(blockAbove);
+
+        if (!blockAboveState.isAir() && blockAboveState.getDestroySpeed(level, blockAbove) >= 0) {
+            level.destroyBlock(blockAbove, false);
+        }
     }
 
+
     private void playNoise() {
-        if (currentChaseSoundIndex < SkinWalkerSounds.SKINWALKER_SOUNDS.length) {
-            int randomIndex = mob.getRandom().nextInt(SkinWalkerSounds.BAIT_SOUNDS.length); // Choose a random index
-            Level level = (Level) mob.level; // Make sure to get the level correctly
-            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SkinWalkerSounds.SKINWALKER_SOUNDS[randomIndex].get(), SoundSource.PLAYERS, 2.0F, 1.0F);
-            currentChaseSoundIndex++;
+        System.out.println("Playing Noise");
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastSoundTime < 3000 && lastSoundTime != 0 ) {
+            System.out.println("Used sound to recently currentTime - lastSoundTime: " + (currentTime - lastSoundTime));
+            return;
+        }
+
+        Random random = new Random();
+        int randomNumber = random.nextInt(3) + 1;
+
+        switch (randomNumber) {
+            case 1:
+                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND1.get(), 0.5F, 1.0F);
+                return;
+            case 2:
+                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND2.get(), 0.5F, 1.0F);
+                // Perform action for case 2
+                return;
+            case 3:
+                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND3.get(), 0.5F, 1.0F);
+                // Perform action for case 3
+            default:
+                System.out.println("Unexpected number generated.");
+                return;
         }
     }
 }

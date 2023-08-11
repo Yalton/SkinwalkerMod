@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.yalt.skinwalker.entity.ModEntityTypes;
 import com.yalt.skinwalker.entity.client.SkinWalkerRenderer;
 import com.yalt.skinwalker.item.ModItems;
+import com.yalt.skinwalker.sound.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,8 +40,8 @@ public class Skinwalker {
         modEventBus.addListener(this::commonSetup);
         ModItems.register(modEventBus);
         ModEntityTypes.register(modEventBus);
+        ModSounds.register(modEventBus);
         MinecraftForge.EVENT_BUS.register(this);
-//        CreativeTabInit.TABS.register(modEventBus);
         GeckoLib.initialize();
         modEventBus.addListener(this::addCreative);
     }
