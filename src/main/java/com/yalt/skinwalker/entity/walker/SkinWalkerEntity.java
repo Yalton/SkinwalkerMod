@@ -1,6 +1,5 @@
 package com.yalt.skinwalker.entity.walker;
 
-import com.yalt.skinwalker.entity.disguise.CowDisguiseEntity;
 import com.yalt.skinwalker.entity.goal.BaitingGoal;
 import com.yalt.skinwalker.entity.goal.ChaseGoal;
 import com.yalt.skinwalker.entity.goal.StalkGoal;
@@ -175,12 +174,12 @@ public class SkinWalkerEntity extends Monster implements GeoEntity {
 //    }
 
 
-    public void transform() {
-        var disguiseEntity = new CowDisguiseEntity(EntityType.COW, this.level());
-        disguiseEntity.copyPosition(this);
-        this.level().addFreshEntity(disguiseEntity);
-        this.remove(RemovalReason.DISCARDED);
-    }
+//    public void transform() {
+//        var disguiseEntity = new CowDisguiseEntity(EntityType.COW, this.level());
+//        disguiseEntity.copyPosition(this);
+//        this.level().addFreshEntity(disguiseEntity);
+//        this.remove(RemovalReason.DISCARDED);
+//    }
 
     public boolean isBaiting() {
         return this.entityData.get(BAITING_ACCESSOR);
