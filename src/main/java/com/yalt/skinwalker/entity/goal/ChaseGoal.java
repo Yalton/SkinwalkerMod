@@ -1,5 +1,6 @@
-package com.yalt.skinwalker.entity.custom;
+package com.yalt.skinwalker.entity.goal;
 
+import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import com.yalt.skinwalker.sound.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvent;
@@ -12,22 +13,22 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.List;
 import java.util.Random;
 
-public class SkinWalkerChaseGoal extends Goal {
+public class ChaseGoal extends Goal {
     private final SkinWalkerEntity mob;
     private long lastSoundTime = 0;
-
     private final double speed;
     private LivingEntity target;
-    private int currentChaseSoundIndex = 0;
 
-
-    public SkinWalkerChaseGoal(SkinWalkerEntity mob, double speed) {
+    public ChaseGoal(SkinWalkerEntity mob, double speed) {
         this.mob = mob;
         this.speed = speed;
     }
 
     @Override
     public boolean canUse() {
+        if (mob.isAggro()) {
+            return true;
+        }
         List<Player> players = mob.level.getEntitiesOfClass(Player.class, mob.getBoundingBox().inflate(1000.0f)); // Any distance
         if (players.isEmpty()) {
             return false;
@@ -37,7 +38,7 @@ public class SkinWalkerChaseGoal extends Goal {
 
         if (closestPlayer != null) {
             double distance = closestPlayer.distanceTo(mob);
-            if (distance < 6.0D) {
+            if (distance < 8.0D) {
                 return true;
             }
         }
@@ -47,12 +48,19 @@ public class SkinWalkerChaseGoal extends Goal {
 
     @Override
     public void start() {
+        mob.setBaiting(false);
+        mob.setStalking(false);
+        mob.setAggro(true);
+        mob.setFourLegged(true);
+        mob.setSprinting(true);
         System.out.println("Using Chasing Goal");
         chasePlayer();
     }
 
     @Override
     public void stop() {
+        mob.setSprinting(false);
+        mob.setFourLegged(false);
         target = null;
         mob.getNavigation().stop();
     }
@@ -62,7 +70,7 @@ public class SkinWalkerChaseGoal extends Goal {
         if (target == null) {
             return;
         }
-        if (mob.distanceToSqr(target) <= 4.0) { // Attack range
+        if (mob.distanceToSqr(target) <= 1.0) {
             attackPlayer();
         } else {
             chasePlayer();
@@ -118,7 +126,7 @@ public class SkinWalkerChaseGoal extends Goal {
     private void playNoise() {
         System.out.println("Playing Noise");
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastSoundTime < 3000 && lastSoundTime != 0 ) {
+        if (currentTime - lastSoundTime < 3000 && lastSoundTime != 0) {
             System.out.println("Used sound to recently currentTime - lastSoundTime: " + (currentTime - lastSoundTime));
             return;
         }
@@ -128,14 +136,14 @@ public class SkinWalkerChaseGoal extends Goal {
 
         switch (randomNumber) {
             case 1:
-                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND1.get(), 0.5F, 1.0F);
+                mob.playEntitySound((SoundEvent) ModSounds.SKINWALKER_SOUND1.get(), 0.5F, 1.0F);
                 return;
             case 2:
-                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND2.get(), 0.5F, 1.0F);
+                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND2.get(), 0.5F, 1.0F);
                 // Perform action for case 2
                 return;
             case 3:
-                mob.playEntitySound((SoundEvent)ModSounds.SKINWALKER_SOUND3.get(), 0.5F, 1.0F);
+                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND3.get(), 0.5F, 1.0F);
                 // Perform action for case 3
             default:
                 System.out.println("Unexpected number generated.");

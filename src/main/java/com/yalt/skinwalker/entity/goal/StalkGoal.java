@@ -1,13 +1,15 @@
-package com.yalt.skinwalker.entity.custom;
+package com.yalt.skinwalker.entity.goal;
 
+import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.List;
 
-public class SkinWalkerStalkGoal extends Goal {
+public class StalkGoal extends Goal {
     private final SkinWalkerEntity mob;
+    //private final Mob mob;
     private final double speed;
     private final float maxDistance;
     private final float minDistance;
@@ -15,7 +17,7 @@ public class SkinWalkerStalkGoal extends Goal {
     private int currentStalkSoundIndex = 0;
 
 
-    public SkinWalkerStalkGoal(SkinWalkerEntity mob, double speed, float maxDistance, float minDistance) {
+    public StalkGoal(SkinWalkerEntity mob, double speed, float maxDistance, float minDistance) {
         this.mob = mob;
         this.speed = speed;
         this.maxDistance = maxDistance; // 30 blocks
@@ -42,12 +44,15 @@ public class SkinWalkerStalkGoal extends Goal {
 
     @Override
     public void start() {
+        mob.setStalking(true);
+
         System.out.println("Using Stalking Goal");
         watchPlayer(); // Watch the player
     }
 
     @Override
     public void stop() {
+        mob.setStalking(false);
         target = null;
     }
 
@@ -77,6 +82,7 @@ public class SkinWalkerStalkGoal extends Goal {
         double retreatZ = mob.getZ() + (mob.getZ() - target.getZ());
         mob.getNavigation().moveTo(retreatX, retreatY, retreatZ, speed);
     }
+
     private void playNoise() {
 //        if (currentStalkSoundIndex < SkinWalkerSounds.TALKING_SOUNDS.length) {
 //            int randomIndex = mob.getRandom().nextInt(SkinWalkerSounds.TALKING_SOUNDS.length); // Choose a random index

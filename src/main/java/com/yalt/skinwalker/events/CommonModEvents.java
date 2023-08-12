@@ -2,7 +2,7 @@ package com.yalt.skinwalker.events;
 
 import com.yalt.skinwalker.Skinwalker;
 import com.yalt.skinwalker.entity.ModEntityTypes;
-import com.yalt.skinwalker.entity.custom.SkinWalkerEntity;
+import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 
 import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.level.levelgen.Heightmap;

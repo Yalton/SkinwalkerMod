@@ -1,7 +1,7 @@
-package com.yalt.skinwalker.entity.client;
+package com.yalt.skinwalker.entity.walker;
 
 import com.mojang.math.Constants;
-import com.yalt.skinwalker.entity.custom.SkinWalkerEntity;
+import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.core.animatable.model.CoreGeoBone;

@@ -2,7 +2,7 @@ package com.yalt.skinwalker;
 
 import com.mojang.logging.LogUtils;
 import com.yalt.skinwalker.entity.ModEntityTypes;
-import com.yalt.skinwalker.entity.client.SkinWalkerRenderer;
+import com.yalt.skinwalker.entity.walker.SkinWalkerRenderer;
 import com.yalt.skinwalker.item.ModItems;
 import com.yalt.skinwalker.sound.ModSounds;
 import net.minecraft.client.Minecraft;
@@ -51,6 +51,7 @@ public class Skinwalker {
         LOGGER.info("HELLO FROM COMMON SETUP");
         LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
     }
+
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
         event.accept(ModItems.SKIN_WALKER_EGG);
     }
