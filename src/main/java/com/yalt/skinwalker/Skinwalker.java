@@ -6,6 +6,7 @@ import com.yalt.skinwalker.entity.walker.SkinWalkerRenderer;
 import com.yalt.skinwalker.item.ModItems;
 import com.yalt.skinwalker.sound.ModSounds;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.CowRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
@@ -77,6 +78,7 @@ public class Skinwalker {
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
             EntityRenderers.register(ModEntityTypes.SKIN_WALKER.get(), SkinWalkerRenderer::new);
+            EntityRenderers.register(ModEntityTypes.ETHEREAL_ENTITY.get(), CowRenderer::new);
         }
     }
 }

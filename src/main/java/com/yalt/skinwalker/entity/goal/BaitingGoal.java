@@ -63,7 +63,7 @@ public class BaitingGoal extends Goal {
 
     @Override
     public void start() {
-        mob.transform();
+        //mob.transform();
         mob.setBaiting(true);
         if (!atTargetLocation) {
             int minDistanceFromPlayer = 40;

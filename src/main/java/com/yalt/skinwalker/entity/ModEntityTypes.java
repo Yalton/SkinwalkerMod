@@ -1,7 +1,7 @@
 package com.yalt.skinwalker.entity;
 
 import com.yalt.skinwalker.Skinwalker;
-import com.yalt.skinwalker.entity.disguise.CowDisguiseEntity;
+import com.yalt.skinwalker.entity.ethereal.Ethereal;
 import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -23,11 +23,19 @@ public class ModEntityTypes {
                             .sized(1.5f, 1.75f)
                             .build(new ResourceLocation(Skinwalker.MODID, "skinwalker").toString()));
 
-    public static final RegistryObject<EntityType<CowDisguiseEntity>> DISGUISE_COW_WALKER =
-            ENTITY_TYPES.register("disguise_cow_walker",
-                    () -> EntityType.Builder.of(CowDisguiseEntity::new, MobCategory.MONSTER)
+
+    public static final RegistryObject<EntityType<Ethereal>> ETHEREAL_ENTITY =
+            ENTITY_TYPES.register("ethereal_entity",
+                    () -> EntityType.Builder.of(Ethereal::new, MobCategory.MONSTER)
                             .sized(1.5f, 1.75f)
-                            .build(new ResourceLocation(Skinwalker.MODID, "disguise_cow_walker").toString()));
+                            .build(new ResourceLocation(Skinwalker.MODID, "ethereal_entity").toString()));
+
+
+//    public static final RegistryObject<EntityType<CowDisguiseEntity>> DISGUISE_COW_WALKER =
+//            ENTITY_TYPES.register("disguise_cow_walker",
+//                    () -> EntityType.Builder.of(CowDisguiseEntity::new, MobCategory.MONSTER)
+//                            .sized(1.5f, 1.75f)
+//                            .build(new ResourceLocation(Skinwalker.MODID, "disguise_cow_walker").toString()));
 
     public static void register(IEventBus eventBus) {
         ENTITY_TYPES.register(eventBus);
