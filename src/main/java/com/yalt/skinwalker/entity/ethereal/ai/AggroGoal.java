@@ -5,6 +5,7 @@ import com.yalt.skinwalker.entity.ethereal.Ethereal;
 import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 
 import java.util.Random;
@@ -26,11 +27,12 @@ public class AggroGoal extends EtherealGoal {
     }
 
     public boolean sustainedDamage() {
-        if (this.ethereal.getActor() != null) {
-            return this.ethereal.getActor().getLastHurtByMob() != null;
+        if (this.ethereal.possessedEntity != null) {
+            return ((Mob) this.ethereal.possessedEntity).getLastHurtByMob() != null;
         }
         return false;
     }
+
 
     public void start() {
         transform();

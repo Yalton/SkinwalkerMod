@@ -31,12 +31,6 @@ public class ModEntityTypes {
                             .build(new ResourceLocation(Skinwalker.MODID, "ethereal_entity").toString()));
 
 
-//    public static final RegistryObject<EntityType<CowDisguiseEntity>> DISGUISE_COW_WALKER =
-//            ENTITY_TYPES.register("disguise_cow_walker",
-//                    () -> EntityType.Builder.of(CowDisguiseEntity::new, MobCategory.MONSTER)
-//                            .sized(1.5f, 1.75f)
-//                            .build(new ResourceLocation(Skinwalker.MODID, "disguise_cow_walker").toString()));
-
     public static void register(IEventBus eventBus) {
         ENTITY_TYPES.register(eventBus);
     }

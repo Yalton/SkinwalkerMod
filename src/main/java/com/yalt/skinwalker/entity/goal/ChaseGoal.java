@@ -2,22 +2,34 @@ package com.yalt.skinwalker.entity.goal;
 
 import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import com.yalt.skinwalker.sound.ModSounds;
+import com.yalt.skinwalker.entity.ethereal.Ethereal;
+import com.yalt.skinwalker.entity.ModEntityTypes;
+import net.minecraft.world.entity.EntityType;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Random;
+import java.util.random.RandomGenerator;
 
 public class ChaseGoal extends Goal {
     private final SkinWalkerEntity mob;
     private long lastSoundTime = 0;
     private final double speed;
     private LivingEntity target;
+    private long chaseStartTime = 0; // New variable to keep track of chase start time
+    private Object EntityType;
+
+    EntityType EtherealEntityType = ModEntityTypes.ETHEREAL_ENTITY.get();
 
     public ChaseGoal(SkinWalkerEntity mob, double speed) {
         this.mob = mob;
@@ -48,6 +60,7 @@ public class ChaseGoal extends Goal {
 
     @Override
     public void start() {
+        chaseStartTime = System.currentTimeMillis(); // Record the start time
         mob.setBaiting(false);
         mob.setStalking(false);
         mob.setAggro(true);
@@ -56,6 +69,7 @@ public class ChaseGoal extends Goal {
         System.out.println("Using Chasing Goal");
         chasePlayer();
     }
+
 
     @Override
     public void stop() {
@@ -68,6 +82,11 @@ public class ChaseGoal extends Goal {
     @Override
     public void tick() {
         if (target == null) {
+            return;
+        }
+        if (System.currentTimeMillis() - chaseStartTime > 120000) {
+            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level);
+            transform(etherealEntity);
             return;
         }
         if (mob.distanceToSqr(target) <= 1.0) {
@@ -149,5 +168,24 @@ public class ChaseGoal extends Goal {
                 System.out.println("Unexpected number generated.");
                 return;
         }
+    }
+
+    public void transform(@NotNull Entity entity) {
+        Level level = mob.level();
+        double x = entity.getX();
+        double y = entity.getY();
+        double z = entity.getZ();
+        int count = 60;
+        for (int i = 0; i < count; i++) {
+            RandomGenerator random = null;
+            double offsetX = random.nextGaussian() * 0.02D;
+            double offsetY = random.nextGaussian() * 0.02D;
+            double offsetZ = random.nextGaussian() * 0.02D;
+
+            level.addParticle(ParticleTypes.SMOKE, x + offsetX, y + offsetY, z + offsetZ, 0, 0, 0);
+        }
+        entity.copyPosition(this.mob);
+        mob.level().addFreshEntity(entity);
+        mob.remove(Entity.RemovalReason.DISCARDED);
     }
 }

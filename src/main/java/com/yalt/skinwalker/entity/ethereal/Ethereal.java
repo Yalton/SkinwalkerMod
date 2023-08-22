@@ -16,6 +16,8 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.animal.Cow;
@@ -27,15 +29,23 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 public class Ethereal extends Cow {
     private Player target = null;
+    //    private boolean originalInvisibleState;
+    private GoalSelector originalGoalSelector;
+
     private Mob actor = null;
     private HashMap<UUID, Integer> attitude;
+
+    public Entity possessedEntity = null;
+
 
     private static final EntityDataAccessor<Integer> BUDGET = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> REGEN = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
@@ -156,15 +166,6 @@ public class Ethereal extends Cow {
         // Ignore block collisions
         return false;
     }
-//    @Override
-//    public boolean isPushedByFluid() {
-//        return false;
-//    }
-//    @Override
-//    public boolean isPushable() {
-//        return false;
-//    }
-
 
     protected SoundEvent getAmbientSound() {
         return null;
@@ -178,6 +179,11 @@ public class Ethereal extends Cow {
         return null;
     }
 
+    public void performAction() {
+        // Implement the action logic here
+    }
+
+    
     public int getRadius() {
         return this.entityData.get(RADIUS);
     }
@@ -210,4 +216,74 @@ public class Ethereal extends Cow {
         return chunks.flatMap(chunk -> chunk.getBlockEntities().values().stream());
     }
 
+    private void cloneGoals(GoalSelector source, GoalSelector target) {
+        try {
+            Field goalsField = GoalSelector.class.getDeclaredField("goals"); // Adjust the field name as needed
+            goalsField.setAccessible(true);
+
+            Set<WrappedGoal> sourceGoals = (Set<WrappedGoal>) goalsField.get(source);
+            Set<WrappedGoal> targetGoals = (Set<WrappedGoal>) goalsField.get(target);
+
+            targetGoals.clear();
+            targetGoals.addAll(sourceGoals);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+            // Handle error
+        }
+    }
+
+
+    public void possess(Entity target) {
+        if (target instanceof Mob mob) {
+            System.out.println("Possesing entity");
+            this.possessedEntity = target;
+
+            // Set Ethereal to invisible
+            this.setInvisible(true);
+
+            try {
+                Field goalSelectorField = Mob.class.getDeclaredField("goalSelector"); // The field name might differ depending on the version
+                goalSelectorField.setAccessible(true);
+
+                this.originalGoalSelector = (GoalSelector) goalSelectorField.get(mob);
+                GoalSelector newGoalSelector = new GoalSelector(() -> mob.level().getProfiler());
+
+                // Clone goals from Ethereal to new goal selector
+                cloneGoals(this.goalSelector, newGoalSelector);
+
+                goalSelectorField.set(mob, newGoalSelector);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+                // Handle error
+            }
+        }
+    }
+
+
+    public void unpossess() {
+        if (possessedEntity != null) {
+            // Restore original state of the possessed entity, if applicable
+            // ...
+
+            // Reset Ethereal to visible
+            this.setInvisible(false);
+
+            this.possessedEntity = null;
+        }
+    }
+
+    public boolean hasBetterTarget() {
+        // Implement logic to determine if t
+        //
+        //                 'GoalSelector(java.util.function.Supplier<net.minecraft.util.profiling.ProfilerFiller>)' in 'net.minecraft.world.entity.ai.goal.GoalSelector' cannot be applied to '(net.minecraft.util.profiling.ProfilerFiller)'
+        //
+        //                GoalSelector newGoalSelector = new GoalSelector(mob.level().getProfiler());here's a better target to possess
+        // For example, you might check for a closer passive entity
+        Animal nearestAnimal = getNearestAnimal();
+        return nearestAnimal != null && this.distanceToSqr(nearestAnimal) < this.distanceToSqr(possessedEntity);
+    }
+
+    public Entity getPossessedEntity() {
+        return this.possessedEntity;
+    }
 }

@@ -1,6 +1,7 @@
 package com.yalt.skinwalker.entity.ethereal.ai;
 
 import com.yalt.skinwalker.entity.ethereal.Ethereal;
+import net.minecraft.world.entity.Entity;
 
 public class PossessGoal extends EtherealGoal {
     private static final int POSSESS_COST = -2;
@@ -12,31 +13,25 @@ public class PossessGoal extends EtherealGoal {
 
     @Override
     public boolean canUse() {
-        ethereal.tryToAcquireTarget();
-//        return ethereal.hasBudget();
-        // TODO: rEmove.
-        return false;
+        return ethereal.hasBudget() && (ethereal.getPossessedEntity() == null || ethereal.hasBetterTarget());
     }
 
     @Override
     public void start() {
         super.start();
-//        tryToPossess();
 
+
+        // Unpossess current entity if Ethereal has a better target
+        if (ethereal.getPossessedEntity() != null && ethereal.hasBetterTarget()) {
+            ethereal.unpossess();
+            ethereal.updateBudget(UNPOSSESS_COST);
+        }
+
+        // Try to possess a new target
+        Entity target = ethereal;
+        if (target != null) {
+            ethereal.possess(target);
+            ethereal.updateBudget(POSSESS_COST);
+        }
     }
-
-//    public void tryToPossess() {
-//        var player = ethereal.tryToAcquireTarget();
-//        if (player == null) {
-//            return;
-//        }
-//
-//        ethereal.teleportTo(player.getX(), player.getY(), player.getZ());
-//        var animal = ethereal.getNearestAnimal();
-//        if (animal != null) {
-//            ethereal.updateBudget(POSSESS_COST);
-//            ethereal.setActor(animal);
-//        }
-//    }
-
 }

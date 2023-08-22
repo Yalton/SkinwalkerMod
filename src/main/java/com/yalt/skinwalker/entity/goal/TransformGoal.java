@@ -15,11 +15,11 @@ import java.util.random.RandomGenerator;
 
 //import javax.annotation.Nullable;
 
-public class DisguiseGoal extends Goal {
+public class TransformGoal extends Goal {
 
     private final SkinWalkerEntity mob;
 
-    public DisguiseGoal(SkinWalkerEntity mob, double speed) {
+    public TransformGoal(SkinWalkerEntity mob, double speed) {
         this.mob = mob;
     }
 
