@@ -20,42 +20,46 @@ public class AggroGoal extends EtherealGoal {
 
     @Override
     public boolean canUse() {
-        if (this.sustainedDamage()) {
-            return true;
-        }
-        return false;
+        return sustainedDamage();
     }
 
-    public boolean sustainedDamage() {
+    private boolean sustainedDamage() {
         if (this.ethereal.possessedEntity != null) {
             return ((Mob) this.ethereal.possessedEntity).getLastHurtByMob() != null;
+        } else if (this.ethereal.possessedEntity == null) {
+            return ((Mob) this.ethereal).getLastHurtByMob() != null;
         }
         return false;
     }
 
 
+    @Override
     public void start() {
-        transform();
+        if (ethereal.possessedEntity != null) {
+            transformAndRemoveEntities(ethereal.possessedEntity);
+        }
+        transformAndRemoveEntities(ethereal);
     }
 
-    public void transform() {
+    private void transformAndRemoveEntities(Entity entityToRemove) {
         SkinWalkerEntity skinWalker = new SkinWalkerEntity(ModEntityTypes.SKIN_WALKER.get(), this.ethereal.level());
         Level level = this.ethereal.level();
-        double x = this.ethereal.getX();
-        double y = this.ethereal.getY();
-        double z = this.ethereal.getZ();
-        int count = 60;
-        Random random = new Random(); // Initialize Random object here
+        double x = entityToRemove.getX();
+        double y = entityToRemove.getY();
+        double z = entityToRemove.getZ();
+        spawnParticles(level, x, y, z, 60);
+        skinWalker.copyPosition(entityToRemove);
+        level.addFreshEntity(skinWalker);
+        entityToRemove.remove(Entity.RemovalReason.DISCARDED);
+    }
+
+    private void spawnParticles(Level level, double x, double y, double z, int count) {
+        Random random = new Random();
         for (int i = 0; i < count; i++) {
             double offsetX = random.nextGaussian() * 0.02D;
             double offsetY = random.nextGaussian() * 0.02D;
             double offsetZ = random.nextGaussian() * 0.02D;
-
             level.addParticle(ParticleTypes.SMOKE, x + offsetX, y + offsetY, z + offsetZ, 0, 0, 0);
         }
-        skinWalker.copyPosition(this.ethereal);
-        ethereal.level().addFreshEntity(skinWalker);
-        ethereal.remove(Entity.RemovalReason.DISCARDED);
     }
-
 }

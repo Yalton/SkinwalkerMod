@@ -28,6 +28,8 @@ public class ChaseGoal extends Goal {
     private LivingEntity target;
     private long chaseStartTime = 0; // New variable to keep track of chase start time
     private Object EntityType;
+    private boolean transformIntoEthereal = false;
+    public float MAX_DISTANCE = 25.0f;
 
     EntityType EtherealEntityType = ModEntityTypes.ETHEREAL_ENTITY.get();
 
@@ -51,6 +53,10 @@ public class ChaseGoal extends Goal {
         if (closestPlayer != null) {
             double distance = closestPlayer.distanceTo(mob);
             if (distance < 8.0D) {
+                transformIntoEthereal = false;
+                return true;
+            } else {
+                transformIntoEthereal = true;
                 return true;
             }
         }
@@ -60,16 +66,22 @@ public class ChaseGoal extends Goal {
 
     @Override
     public void start() {
-        chaseStartTime = System.currentTimeMillis(); // Record the start time
-        mob.setBaiting(false);
-        mob.setStalking(false);
-        mob.setAggro(true);
-        mob.setFourLegged(true);
-        mob.setSprinting(true);
-        System.out.println("Using Chasing Goal");
-        chasePlayer();
+        if (transformIntoEthereal) {
+            // Code to make the entity walk away
+            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level);
+            transform(etherealEntity);
+        } else {
+            // Existing code for chasing
+            chaseStartTime = System.currentTimeMillis();
+            mob.setBaiting(false);
+            mob.setStalking(false);
+            mob.setAggro(true);
+            mob.setFourLegged(true);
+            mob.setSprinting(true);
+            System.out.println("Using Chasing Goal");
+            chasePlayer();
+        }
     }
-
 
     @Override
     public void stop() {
@@ -84,17 +96,22 @@ public class ChaseGoal extends Goal {
         if (target == null) {
             return;
         }
-        if (System.currentTimeMillis() - chaseStartTime > 120000) {
+
+        double distanceToTarget = mob.distanceToSqr(target);
+
+        if (System.currentTimeMillis() - chaseStartTime > 120000 || distanceToTarget > MAX_DISTANCE) {
             Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level);
             transform(etherealEntity);
             return;
         }
-        if (mob.distanceToSqr(target) <= 1.0) {
+
+        if (distanceToTarget <= 1.0) {
             attackPlayer();
         } else {
             chasePlayer();
         }
     }
+
 
     private void chasePlayer() {
         if (target != null) {

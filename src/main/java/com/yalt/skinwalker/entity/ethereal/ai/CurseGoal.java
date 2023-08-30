@@ -12,28 +12,66 @@ import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
+import java.util.Random;
 
 public class CurseGoal extends EtherealGoal {
     public CurseGoal(Ethereal ethereal) {
         super(ethereal);
     }
 
-    public void badLuck() {
-        Player player = this.ethereal.level().getNearestPlayer(ethereal, 10); // Find a player within 10 blocks
-        if (player != null) {
-            player.addEffect(new MobEffectInstance(MobEffects.UNLUCK, 6000)); // Apply bad luck for 5 minutes
-        }
+    private static final int CURSE_COST = -2;
 
+    @Override
+    public boolean canUse() {
+
+        return super.canUse() && ethereal.hasPossessedEntity && ethereal.hasTarget();
+    }
+
+    @Override
+    public void start() {
+        Random random = new Random();
+        int randomNumber = random.nextInt(4) + 1;
+
+        switch (randomNumber) {
+            case 1 -> {
+                this.badLuck();
+            }
+            case 2 -> {
+                this.buffEnemy();
+            }
+            case 3 -> {
+                this.rotCrops();
+            }
+            case 4 -> {
+                this.replaceMilkWithWater();
+            }
+        }
+    }
+
+    public void badLuck() {
+        Player player = this.ethereal.getTarget();
+        if (player != null) {
+            System.out.println("Applying Bad Luck");
+            player.addEffect(new MobEffectInstance(MobEffects.UNLUCK, 6000)); // Apply bad luck for 5 minutes
+            ethereal.updateBudget(-1);
+        }
     }
 
     public void buffEnemy() {
+
+
         List<Monster> enemies = this.ethereal.level().getEntitiesOfClass(Monster.class, this.ethereal.getBoundingBox().inflate(10));
-        for (Monster enemy : enemies) {
-            enemy.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 6000)); // Boost damage for 5 minutes
+        if (!enemies.isEmpty()) {
+            System.out.println("Buffing Enemies");
+            for (Monster enemy : enemies) {
+                enemy.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 6000)); // Boost damage for 5 minutes
+            }
+            ethereal.updateBudget(-2);
         }
     }
 
     public void rotCrops() {
+        System.out.println("Rotting Crops");
         int range = 5;
         for (int dx = -range; dx <= range; dx++) {
             for (int dz = -range; dz <= range; dz++) {
@@ -44,10 +82,12 @@ public class CurseGoal extends EtherealGoal {
                 }
             }
         }
+        ethereal.updateBudget(-2);
     }
 
     public void replaceMilkWithWater() {
-        Player player = this.ethereal.level().getNearestPlayer(ethereal, 10); // Find a player within 10 blocks
+        Player player = this.ethereal.getTarget();
+
 
         if (player != null) {
             for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
@@ -55,10 +95,13 @@ public class CurseGoal extends EtherealGoal {
 
                 // Check if the item is a milk bucket
                 if (stack.getItem() == Items.MILK_BUCKET) {
+                    System.out.println("Replacing Milk");
                     // Replace with water bucket
                     player.getInventory().setItem(i, new ItemStack(Items.WATER_BUCKET));
+                    ethereal.updateBudget(-2);
                 }
             }
+
         }
     }
 }

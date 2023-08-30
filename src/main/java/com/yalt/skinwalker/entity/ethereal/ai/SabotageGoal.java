@@ -18,17 +18,44 @@ public class SabotageGoal extends EtherealGoal {
         super(ethereal);
     }
 
+    private static final int SABOTAGE_COST = -2;
+
     @Override
     public boolean canUse() {
-        return super.canUse() && ethereal.hasTarget();
+        return super.canUse() && ethereal.hasPossessedEntity && ethereal.hasTarget();
     }
 
     @Override
     public void start() {
-        super.start();
+        Random random = new Random();
+        int randomNumber = random.nextInt(4) + 1;
 
-        var r = rearrangeItemsInContainers();
-        System.out.println("rearrangeItemsInContainers(): " + r);
+        switch (randomNumber) {
+            case 1 -> {
+                if (this.replacePaintings()) {
+                    ethereal.updateBudget(SABOTAGE_COST);
+                }
+                return;
+            }
+            case 2 -> {
+                if (this.toggleDoors()) {
+                    ethereal.updateBudget(SABOTAGE_COST);
+                }
+                return;
+            }
+            case 3 -> {
+                if (this.enableJukebox()) {
+                    ethereal.updateBudget(SABOTAGE_COST);
+                }
+                return;
+            }
+            case 4 -> {
+                if (this.rearrangeItemsInContainers()) {
+                    ethereal.updateBudget(SABOTAGE_COST);
+                }
+                return;
+            }
+        }
     }
 
     private boolean replacePaintings() {
@@ -39,7 +66,7 @@ public class SabotageGoal extends EtherealGoal {
             newPainting.setPos(painting.getX(), painting.getY(), painting.getZ());
             this.ethereal.level().addFreshEntity(newPainting);
         }
-
+        ethereal.updateBudget(SABOTAGE_COST);
         return true;
     }
 
@@ -93,6 +120,7 @@ public class SabotageGoal extends EtherealGoal {
 
         var record = (RecordItem) Items.MUSIC_DISC_CAT;
         jukebox.setItem(0, record.getDefaultInstance());
+        ethereal.updateBudget(SABOTAGE_COST);
         return true;
     }
 
@@ -112,7 +140,7 @@ public class SabotageGoal extends EtherealGoal {
         if (doors.isEmpty()) {
             return false;
         }
-
+        ethereal.updateBudget(SABOTAGE_COST);
         // Code to rearrange items in containers
         return true;
     }

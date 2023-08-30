@@ -1,8 +1,6 @@
 package com.yalt.skinwalker.entity.ethereal;
 
-import com.yalt.skinwalker.entity.ethereal.ai.AggroGoal;
-import com.yalt.skinwalker.entity.ethereal.ai.PossessGoal;
-import com.yalt.skinwalker.entity.ethereal.ai.SabotageGoal;
+import com.yalt.skinwalker.entity.ethereal.ai.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -16,7 +14,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.animal.Animal;
@@ -27,29 +25,33 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Ethereal extends Cow {
-    private Player target = null;
-    //    private boolean originalInvisibleState;
-    private GoalSelector originalGoalSelector;
-
-    private Mob actor = null;
-    private HashMap<UUID, Integer> attitude;
-
-    public Entity possessedEntity = null;
-
-
     private static final EntityDataAccessor<Integer> BUDGET = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> REGEN = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> RADIUS = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
+    private static final int BUDGET_UPDATE_INTERVAL = 600;
+
+
+    // Instance variables
+    private int budgetUpdateCounter = 0;
+    public Player target;
+    public Mob possessedEntity;
+    public boolean hasPossessedEntity;
+    public boolean updatedPossessedEntityGoals;
+    private Goal possessedGoal;
+
+    private final Set<Goal> goalsToAddQueue = new HashSet<>();
+    private final Set<Goal> goalsToRemoveQueue = new HashSet<>();
+
+    Logger logger = Logger.getLogger(getClass().getName());
 
     public Ethereal(EntityType<? extends Ethereal> entityType, Level level) {
         super(entityType, level);
@@ -65,9 +67,12 @@ public class Ethereal extends Cow {
     }
 
     @Override
-    public void tick() {
-        super.tick();
-//        tryToAcquireTarget();
+    protected void registerGoals() {
+        this.goalSelector.addGoal(1, new AggroGoal(this));
+        this.goalSelector.addGoal(2, new PossessGoal(this));
+        this.goalSelector.addGoal(3, new InvokeGoal(this));
+        this.goalSelector.addGoal(3, new SabotageGoal(this));
+        this.goalSelector.addGoal(3, new CurseGoal(this));
     }
 
     @Override
@@ -79,14 +84,40 @@ public class Ethereal extends Cow {
     }
 
     @Override
-    protected void registerGoals() {
-//        super.registerGoals();
-        // this.goalSelector.addGoal(1, new FollowMobGoal());
-        // this.goalSelector.addGoal(1, new InvokeGoal(this));
-        this.goalSelector.addGoal(1, new AggroGoal(this));
-        this.goalSelector.addGoal(2, new PossessGoal(this));
-        this.goalSelector.addGoal(3, new SabotageGoal(this));
-//        this.goalSelector.addGoal(4, new CurseGoal(this));
+    public void tick() {
+        super.tick();
+
+        this.tryToAcquireTarget();
+        this.updateGoalsIfNeeded();
+        this.handleBudgetUpdate();
+
+        // If Ethereal has possessed an entity, teleport to that entity's position
+        if (hasPossessedEntity && possessedEntity != null) {
+            Vec3 position = possessedEntity.position();
+            this.teleportTo(position.x, position.y, position.z);
+        }
+
+//        this.budgetUpdateCounter++;
+//
+//        // If 30 seconds have passed (600 ticks), update the budget and reset the counter
+//        if (this.budgetUpdateCounter >= 600) {
+//            updateBudget(1); // Add 1 to the budget
+//            this.budgetUpdateCounter = 0; // Reset the counter
+//        }
+    }
+
+    private void handleBudgetUpdate() {
+        if (++budgetUpdateCounter >= BUDGET_UPDATE_INTERVAL) {
+            updateBudget(1);
+            budgetUpdateCounter = 0;
+        }
+    }
+
+    public boolean updateBudget(int offset) {
+        int budget = this.entityData.get(BUDGET) + offset;
+        if (budget < 0) return false;
+        this.entityData.set(BUDGET, budget);
+        return true;
     }
 
     @Nullable
@@ -97,21 +128,21 @@ public class Ethereal extends Cow {
 
         var self = this.getUUID();
         return entities.stream()
-                .filter(e -> e.getUUID().equals(self))
+                .filter(e -> !e.getUUID().equals(self)) // Exclude self
                 .filter(e -> e.getHealth() > 1.0)
                 .min(Comparator.comparingDouble(this::distanceToSqr))
                 .orElse(null);
     }
 
-    public boolean updateBudget(int offset) {
-        int budget = this.entityData.get(BUDGET) + offset;
-        if (budget < 0) {
-            return false;
-        }
-
-        this.entityData.set(BUDGET, budget);
-        return true;
-    }
+//    public boolean updateBudget(int offset) {
+//        int budget = this.entityData.get(BUDGET) + offset;
+//        if (budget < 0) {
+//            return false;
+//        }
+//
+//        this.entityData.set(BUDGET, budget);
+//        return true;
+//    }
 
     public boolean hasBudget() {
         return this.entityData.get(BUDGET) != 0;
@@ -119,32 +150,23 @@ public class Ethereal extends Cow {
 
     public void tryToAcquireTarget() {
         var acquireRange = 1000.0;
-        if (target != null && target.distanceToSqr(this) < acquireRange) {
+        if (this.target != null && this.target.distanceToSqr(this) < acquireRange) {
             return;
         }
 
         var cond = TargetingConditions.forNonCombat().range(acquireRange);
-        target = level().getNearestPlayer(cond, this);
+        this.target = level().getNearestPlayer(cond, this);
     }
 
     @Nullable
     public Player getTarget() {
-        return target;
+        return this.target;
     }
 
     @Nullable
     public boolean hasTarget() {
-        System.out.println("target? " + (target != null));
-        return target != null;
-    }
-
-    @Nullable
-    public Mob getActor() {
-        return actor;
-    }
-
-    public void setActor(Mob entity) {
-        this.actor = entity;
+//        System.out.println("target? " + (target != null));
+        return this.target != null;
     }
 
     public static boolean canSpawn(EntityType<Ethereal> entityType, LevelAccessor level, MobSpawnType spawnType, BlockPos position, RandomSource random) {
@@ -179,11 +201,7 @@ public class Ethereal extends Cow {
         return null;
     }
 
-    public void performAction() {
-        // Implement the action logic here
-    }
 
-    
     public int getRadius() {
         return this.entityData.get(RADIUS);
     }
@@ -191,8 +209,6 @@ public class Ethereal extends Cow {
     @Nullable
     public Stream<LevelChunk> getChunks() {
         var player = getTarget();
-        // var radius = getRadius();
-
         var level = player.level();
         var block = player.chunkPosition().getWorldPosition();
         System.out.println("chunk center: " + block.toString());
@@ -216,69 +232,85 @@ public class Ethereal extends Cow {
         return chunks.flatMap(chunk -> chunk.getBlockEntities().values().stream());
     }
 
-    private void cloneGoals(GoalSelector source, GoalSelector target) {
-        try {
-            Field goalsField = GoalSelector.class.getDeclaredField("goals"); // Adjust the field name as needed
-            goalsField.setAccessible(true);
-
-            Set<WrappedGoal> sourceGoals = (Set<WrappedGoal>) goalsField.get(source);
-            Set<WrappedGoal> targetGoals = (Set<WrappedGoal>) goalsField.get(target);
-
-            targetGoals.clear();
-            targetGoals.addAll(sourceGoals);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            e.printStackTrace();
-            // Handle error
+    public synchronized void possess(Mob target) {
+        if (target != null) {
+            this.setInvisible(true);
+            possessedEntity = target;
+            hasPossessedEntity = true;
+            updatedPossessedEntityGoals = false;
+            this.queueGoalsToUpdate();
         }
     }
 
+    public synchronized void unpossess() {
+        if (possessedEntity != null) {
+            this.setInvisible(false);
+            possessedEntity = null;
+            hasPossessedEntity = false;
+            updatedPossessedEntityGoals = false;
+            this.queueGoalsToUpdate();
+        }
+    }
 
-    public void possess(Entity target) {
-        if (target instanceof Mob mob) {
-            System.out.println("Possesing entity");
-            this.possessedEntity = target;
+//    private final Set<Goal> goalsToAddQueue = new HashSet<>();
+//    private final Set<Goal> goalsToRemoveQueue = new HashSet<>();
 
-            // Set Ethereal to invisible
-            this.setInvisible(true);
 
-            try {
-                Field goalSelectorField = Mob.class.getDeclaredField("goalSelector"); // The field name might differ depending on the version
-                goalSelectorField.setAccessible(true);
+    private boolean shouldAddPossessedGoal() {
+        // Add PossessedGoal if the entity was newly possessed and goals have not been updated
+        return hasPossessedEntity && !updatedPossessedEntityGoals;
+    }
 
-                this.originalGoalSelector = (GoalSelector) goalSelectorField.get(mob);
-                GoalSelector newGoalSelector = new GoalSelector(() -> mob.level().getProfiler());
+    private boolean shouldRemovePossessedGoal() {
+        // Remove PossessedGoal if the entity is being unpossessed
+        return !hasPossessedEntity && updatedPossessedEntityGoals;
+    }
 
-                // Clone goals from Ethereal to new goal selector
-                cloneGoals(this.goalSelector, newGoalSelector);
+    public synchronized void updateGoalsIfNeeded() {
+        Logger logger = Logger.getLogger(getClass().getName());
 
-                goalSelectorField.set(mob, newGoalSelector);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                e.printStackTrace();
-                // Handle error
+        if (!goalsToAddQueue.isEmpty() || !goalsToRemoveQueue.isEmpty()) {
+            logger.info("Updating entity goals");
+            if (this.possessedEntity != null && !updatedPossessedEntityGoals) {
+                List<Goal> currentGoals = new ArrayList<>(this.possessedEntity.goalSelector.getAvailableGoals().stream().map(WrappedGoal::getGoal).collect(Collectors.toList()));
+
+                // Add goals
+                for (Goal goal : goalsToAddQueue) {
+                    if (!currentGoals.contains(goal)) {
+                        this.possessedEntity.goalSelector.addGoal(0, goal);
+                        logger.info("Added goal: " + goal);
+                    }
+                }
+
+                // Remove goals
+                for (Goal goal : goalsToRemoveQueue) {
+                    if (currentGoals.contains(goal)) {
+                        this.possessedEntity.goalSelector.removeGoal(goal);
+                        logger.info("Removed goal: " + goal);
+                    }
+                }
+
+                goalsToAddQueue.clear();
+                goalsToRemoveQueue.clear();
+                updatedPossessedEntityGoals = true;
+            } else {
+                logger.warning("Possessed entity is not an instance of Mob. Goals were not updated.");
             }
         }
     }
 
-
-    public void unpossess() {
-        if (possessedEntity != null) {
-            // Restore original state of the possessed entity, if applicable
-            // ...
-
-            // Reset Ethereal to visible
-            this.setInvisible(false);
-
-            this.possessedEntity = null;
+    public synchronized void queueGoalsToUpdate() {
+        if (shouldAddPossessedGoal()) {
+            if (this.possessedGoal == null) {
+                this.possessedGoal = new PossessedGoal(this.possessedEntity, 0.4f, 15.0f);
+            }
+            goalsToAddQueue.add(this.possessedGoal);
+        } else if (shouldRemovePossessedGoal()) {
+            goalsToRemoveQueue.add(this.possessedGoal);
         }
     }
 
     public boolean hasBetterTarget() {
-        // Implement logic to determine if t
-        //
-        //                 'GoalSelector(java.util.function.Supplier<net.minecraft.util.profiling.ProfilerFiller>)' in 'net.minecraft.world.entity.ai.goal.GoalSelector' cannot be applied to '(net.minecraft.util.profiling.ProfilerFiller)'
-        //
-        //                GoalSelector newGoalSelector = new GoalSelector(mob.level().getProfiler());here's a better target to possess
-        // For example, you might check for a closer passive entity
         Animal nearestAnimal = getNearestAnimal();
         return nearestAnimal != null && this.distanceToSqr(nearestAnimal) < this.distanceToSqr(possessedEntity);
     }

@@ -1,8 +1,6 @@
 package com.yalt.skinwalker.entity.walker;
 
-import com.yalt.skinwalker.entity.goal.BaitingGoal;
 import com.yalt.skinwalker.entity.goal.ChaseGoal;
-import com.yalt.skinwalker.entity.goal.StalkGoal;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -15,7 +13,6 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
-import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -90,12 +87,14 @@ public class SkinWalkerEntity extends Monster implements GeoEntity {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new BaitingGoal(this, 1.0D, 30.0F, 10.0F));
-        this.goalSelector.addGoal(2, new StalkGoal(this, 1.0D, 30.0F, 10.0F));
-        this.goalSelector.addGoal(3, new ChaseGoal(this, 1.0D));
-        this.goalSelector.addGoal(4, new WaterAvoidingRandomStrollGoal(this, 1.0D));
+
+        this.goalSelector.addGoal(1, new ChaseGoal(this, 1.0D));
+
     }
 
+    //        this.goalSelector.addGoal(1, new BaitingGoal(this, 1.0D, 30.0F, 10.0F));
+//        this.goalSelector.addGoal(2, new StalkGoal(this, 1.0D, 30.0F, 10.0F));
+//        this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.0D));
     @Override
     public void tick() {
         super.tick();
