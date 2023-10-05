@@ -10,7 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -19,19 +18,16 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Random;
-import java.util.random.RandomGenerator;
-
 public class ChaseGoal extends Goal {
     private final SkinWalkerEntity mob;
     private long lastSoundTime = 0;
     private final double speed;
-    private LivingEntity target;
+    public Player target;
     private long chaseStartTime = 0; // New variable to keep track of chase start time
-    private Object EntityType;
-    private boolean transformIntoEthereal = false;
-    public float MAX_DISTANCE = 25.0f;
+    public boolean transformIntoEthereal = false;
+    public float MAX_DISTANCE = 50.0f;
 
-    EntityType EtherealEntityType = ModEntityTypes.ETHEREAL_ENTITY.get();
+    EntityType<Ethereal> EtherealEntityType = ModEntityTypes.ETHEREAL_ENTITY.get();
 
     public ChaseGoal(SkinWalkerEntity mob, double speed) {
         this.mob = mob;
@@ -40,43 +36,19 @@ public class ChaseGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        if (mob.isAggro()) {
-            return true;
-        }
-        List<Player> players = mob.level.getEntitiesOfClass(Player.class, mob.getBoundingBox().inflate(1000.0f)); // Any distance
-        if (players.isEmpty()) {
-            return false;
-        }
-
-        Player closestPlayer = players.get(0);
-
-        if (closestPlayer != null) {
-            double distance = closestPlayer.distanceTo(mob);
-            if (distance < 8.0D) {
-                transformIntoEthereal = false;
-                return true;
-            } else {
-                transformIntoEthereal = true;
-                return true;
-            }
-        }
-        target = players.get(0);
-        return false;
+        return true; // Always able to use this goal
     }
 
     @Override
     public void start() {
-        if (transformIntoEthereal) {
+        if (this.transformIntoEthereal) {
             // Code to make the entity walk away
-            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level);
+            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level());
             transform(etherealEntity);
         } else {
             // Existing code for chasing
-            chaseStartTime = System.currentTimeMillis();
-            mob.setBaiting(false);
-            mob.setStalking(false);
-            mob.setAggro(true);
-            mob.setFourLegged(true);
+            this.chaseStartTime = System.currentTimeMillis();
+            mob.setFourLegged(false);
             mob.setSprinting(true);
             System.out.println("Using Chasing Goal");
             chasePlayer();
@@ -87,7 +59,7 @@ public class ChaseGoal extends Goal {
     public void stop() {
         mob.setSprinting(false);
         mob.setFourLegged(false);
-        target = null;
+        this.target = null;
         mob.getNavigation().stop();
     }
 
@@ -97,10 +69,11 @@ public class ChaseGoal extends Goal {
             return;
         }
 
-        double distanceToTarget = mob.distanceToSqr(target);
+        double distanceToTarget = mob.distanceToSqr(this.target);
 
-        if (System.currentTimeMillis() - chaseStartTime > 120000 || distanceToTarget > MAX_DISTANCE) {
-            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level);
+        if (System.currentTimeMillis() - chaseStartTime > 240000 || distanceToTarget > MAX_DISTANCE
+                || transformIntoEthereal) {
+            Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level());
             transform(etherealEntity);
             return;
         }
@@ -112,13 +85,13 @@ public class ChaseGoal extends Goal {
         }
     }
 
-
     private void chasePlayer() {
         if (target != null) {
             playNoise();
             breakBlocksInPath();
             mob.getNavigation().moveTo(target, speed);
         } else {
+            System.out.println("Target is null");
             return; // No target
         }
     }
@@ -128,7 +101,7 @@ public class ChaseGoal extends Goal {
     }
 
     private void breakBlocksInPath() {
-        Level level = (Level) mob.level; // Cast to Level
+        Level level = (Level) mob.level(); // Cast to Level
         BlockPos mobPos = mob.blockPosition();
         BlockPos targetPos = target.blockPosition();
         double deltaX = targetPos.getX() - mobPos.getX();
@@ -141,46 +114,52 @@ public class ChaseGoal extends Goal {
         deltaY /= distance;
         deltaZ /= distance;
 
-        // Move one block in the direction
-        BlockPos blockInPath = new BlockPos((int) (mobPos.getX() + deltaX), (int) (mobPos.getY() + deltaY), (int) (mobPos.getZ() + deltaZ));
-        BlockState blockState = level.getBlockState(blockInPath);
+        // Create a Random object for generating the chance to break a block
+        Random random = new Random();
 
-        if (!blockState.isAir() && blockState.getDestroySpeed(level, blockInPath) >= 0) {
-            level.destroyBlock(blockInPath, false);
-        }
+        // Iterate over a 3 block height and 2 block width in front of the entity
+        for (int y = 0; y < 3; y++) {
+            for (int x = -1; x <= 1; x++) {
+                for (int z = -1; z <= 1; z++) {
+                    // Calculate the block position
+                    BlockPos blockInPath = new BlockPos((int) (mobPos.getX() + deltaX + x), (int) (mobPos.getY() + deltaY + y),
+                            (int) (mobPos.getZ() + deltaZ + z));
+                    BlockState blockState = level.getBlockState(blockInPath);
 
-        // Move one block up from the current position
-        BlockPos blockAbove = blockInPath.above(); // Get the block above
-        BlockState blockAboveState = level.getBlockState(blockAbove);
-
-        if (!blockAboveState.isAir() && blockAboveState.getDestroySpeed(level, blockAbove) >= 0) {
-            level.destroyBlock(blockAbove, false);
+                    // If the block is not air and can be destroyed, destroy it with a 20% chance
+                    if (!blockState.isAir() && blockState.getDestroySpeed(level, blockInPath) >= 0 && random.nextFloat() < 0.05) {
+                        // Destroy the block and drop the item
+                        level.destroyBlock(blockInPath, true);
+                    }
+                }
+            }
         }
     }
 
-
     private void playNoise() {
-        System.out.println("Playing Noise");
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastSoundTime < 3000 && lastSoundTime != 0) {
-            System.out.println("Used sound to recently currentTime - lastSoundTime: " + (currentTime - lastSoundTime));
+        // Check if the sound was played less than 5 seconds ago
+        if (currentTime - lastSoundTime < 5000 && lastSoundTime != 0) {
             return;
         }
+        // Update the last sound time to the current time
+        lastSoundTime = currentTime;
 
         Random random = new Random();
         int randomNumber = random.nextInt(3) + 1;
 
         switch (randomNumber) {
             case 1:
-                mob.playEntitySound((SoundEvent) ModSounds.SKINWALKER_SOUND1.get(), 0.5F, 1.0F);
+                mob.playEntitySound((SoundEvent) ModSounds.SKINWALKER_SOUND1.get(), 0.7F, 1.0F);
                 return;
             case 2:
-                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND2.get(), 0.5F, 1.0F);
-                // Perform action for case 2
+                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND2.get(), 0.7F,
+                        1.0F);
                 return;
             case 3:
-                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND3.get(), 0.5F, 1.0F);
-                // Perform action for case 3
+                mob.playEntitySound((SoundEvent) com.yalt.skinwalker.sound.ModSounds.SKINWALKER_SOUND3.get(), 0.7F,
+                        1.0F);
+                return;
             default:
                 System.out.println("Unexpected number generated.");
                 return;
@@ -194,7 +173,7 @@ public class ChaseGoal extends Goal {
         double z = entity.getZ();
         int count = 60;
         for (int i = 0; i < count; i++) {
-            RandomGenerator random = null;
+            Random random = new Random();
             double offsetX = random.nextGaussian() * 0.02D;
             double offsetY = random.nextGaussian() * 0.02D;
             double offsetZ = random.nextGaussian() * 0.02D;

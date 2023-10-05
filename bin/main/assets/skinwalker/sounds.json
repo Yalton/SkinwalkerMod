@@ -1,0 +1,122 @@
+{
+  "bait1": {
+    "subtitle": "sounds.skinwalker.bait1",
+    "sounds": [
+      "skinwalker:bait1"
+    ]
+  },
+  "bait2": {
+    "subtitle": "sounds.skinwalker.bait2",
+    "sounds": [
+      "skinwalker:bait2"
+    ]
+  },
+  "skinwalker_sound1": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound1",
+    "sounds": ["skinwalker:skinwalker_sounds1"]
+  },
+  "skinwalker_sound2": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound2",
+    "sounds": ["skinwalker:skinwalker_sounds2"]
+  },
+  "skinwalker_sound3": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound3",
+    "sounds": ["skinwalker:skinwalker_sounds3"]
+  },
+  "skinwalker_sound4": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound4",
+    "sounds": ["skinwalker:skinwalker_sounds4"]
+  },
+  "skinwalker_sound5": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound5",
+    "sounds": ["skinwalker:skinwalker_sounds5"]
+  },
+  "skinwalker_sound6": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound6",
+    "sounds": ["skinwalker:skinwalker_sounds6"]
+  },
+  "skinwalker_sound7": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound7",
+    "sounds": ["skinwalker:skinwalker_sounds7"]
+  },
+  "skinwalker_sound8": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound8",
+    "sounds": ["skinwalker:skinwalker_sounds8"]
+  },
+  "skinwalker_sound9": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound9",
+    "sounds": ["skinwalker:skinwalker_sounds9"]
+  },
+  "skinwalker_sound10": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound10",
+    "sounds": ["skinwalker:skinwalker_sounds10"]
+  },
+  "skinwalker_sound11": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound11",
+    "sounds": ["skinwalker:skinwalker_sounds11"]
+  },
+  "skinwalker_sound12": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound12",
+    "sounds": ["skinwalker:skinwalker_sounds12"]
+  },
+  "skinwalker_sound13": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound13",
+    "sounds": ["skinwalker:skinwalker_sounds13"]
+  },
+  "skinwalker_sound14": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound14",
+    "sounds": ["skinwalker:skinwalker_sounds14"]
+  },
+  "skinwalker_sound15": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound15",
+    "sounds": ["skinwalker:skinwalker_sounds15"]
+  },
+  "skinwalker_sound16": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound16",
+    "sounds": ["skinwalker:skinwalker_sounds16"]
+  },
+  "skinwalker_sound17": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound17",
+    "sounds": ["skinwalker:skinwalker_sounds17"]
+  },
+  "skinwalker_sound18": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound18",
+    "sounds": ["skinwalker:skinwalker_sounds18"]
+  },
+  "skinwalker_sound19": {
+    "subtitle": "sounds.skinwalker.skinwalker_sound19",
+    "sounds": ["skinwalker:skinwalker_sounds19"]
+  },
+  "skinwalker_talking1": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking1",
+    "sounds": ["skinwalker:skinwalker_talking1"]
+  },
+  "skinwalker_talking2": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking2",
+    "sounds": ["skinwalker:skinwalker_talking2"]
+  },
+  "skinwalker_talking3": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking3",
+    "sounds": ["skinwalker:skinwalker_talking3"]
+  },
+  "skinwalker_talking4": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking4",
+    "sounds": ["skinwalker:skinwalker_talking4"]
+  },
+  "skinwalker_talking5": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking5",
+    "sounds": ["skinwalker:skinwalker_talking5"]
+  },
+  "skinwalker_talking6": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking6",
+    "sounds": ["skinwalker:skinwalker_talking6"]
+  },
+  "skinwalker_talking7": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking7",
+    "sounds": ["skinwalker:skinwalker_talking7"]
+  },
+  "skinwalker_talking8": {
+    "subtitle": "sounds.skinwalker.skinwalker_talking8",
+    "sounds": ["skinwalker:skinwalker_talking8"]
+  }
+}

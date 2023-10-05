@@ -2,18 +2,29 @@ package com.yalt.skinwalker.entity.ethereal.ai;
 
 import com.yalt.skinwalker.entity.ethereal.Ethereal;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
 
 public class PossessGoal extends EtherealGoal {
     private static final int POSSESS_COST = -2;
     private static final int UNPOSSESS_COST = 1;
+    Player nearestPlayer;
 
     public PossessGoal(Ethereal ethereal) {
         super(ethereal);
     }
 
+
     @Override
     public boolean canUse() {
-        return ethereal.hasBudget() && (ethereal.getPossessedEntity() == null || ethereal.hasBetterTarget());
+        // If Ethereal has budget and (Ethereal has no possessed entity or Ethereal has a better target)
+        if (ethereal.hasBudget() && (ethereal.getPossessedEntity() == null || ethereal.hasBetterTarget())) {
+            if (this.ethereal.getFakePlayer() == null && !ethereal.hasBetterTarget()) {
+                this.ethereal.disguiseAsPlayer();
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override

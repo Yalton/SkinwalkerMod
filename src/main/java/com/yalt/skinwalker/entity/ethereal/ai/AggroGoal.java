@@ -11,8 +11,6 @@ import net.minecraft.world.level.Level;
 import java.util.Random;
 
 public class AggroGoal extends EtherealGoal {
-    private static final int POSSESS_COST = -2;
-    private static final int UNPOSSESS_COST = 1;
 
     public AggroGoal(Ethereal ethereal) {
         super(ethereal);
@@ -37,11 +35,15 @@ public class AggroGoal extends EtherealGoal {
     public void start() {
         if (ethereal.possessedEntity != null) {
             transformAndRemoveEntities(ethereal.possessedEntity);
+            ethereal.possessedEntity.remove(Entity.RemovalReason.DISCARDED);
+
+        } else {
+            transformAndRemoveEntities(ethereal);
         }
-        transformAndRemoveEntities(ethereal);
     }
 
     private void transformAndRemoveEntities(Entity entityToRemove) {
+        this.playNoise();
         SkinWalkerEntity skinWalker = new SkinWalkerEntity(ModEntityTypes.SKIN_WALKER.get(), this.ethereal.level());
         Level level = this.ethereal.level();
         double x = entityToRemove.getX();
@@ -51,6 +53,7 @@ public class AggroGoal extends EtherealGoal {
         skinWalker.copyPosition(entityToRemove);
         level.addFreshEntity(skinWalker);
         entityToRemove.remove(Entity.RemovalReason.DISCARDED);
+        spawnParticles(level, skinWalker.getX(), skinWalker.getY(), skinWalker.getZ(), 600); // Spawn particles at the new SkinWalkerEntity's position
     }
 
     private void spawnParticles(Level level, double x, double y, double z, int count) {

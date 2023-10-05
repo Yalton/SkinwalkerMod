@@ -1,7 +1,7 @@
 package com.yalt.skinwalker.entity.walker;
 
 import com.mojang.math.Constants;
-import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
+// import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.constant.DataTickets;
 import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
@@ -10,7 +10,7 @@ import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.model.data.EntityModelData;
 
 public class SkinWalkerModel extends GeoModel<SkinWalkerEntity> {
-    private Constants Mth;
+    // private Constants Mth;
 
     public SkinWalkerModel() {
     }
@@ -34,8 +34,8 @@ public class SkinWalkerModel extends GeoModel<SkinWalkerEntity> {
         if (head != null) {
             EntityModelData entityData = animationState.getData(DataTickets.ENTITY_MODEL_DATA);
 
-            head.setRotX(entityData.headPitch() * Mth.DEG_TO_RAD);
-            head.setRotY(entityData.netHeadYaw() * Mth.DEG_TO_RAD);
+            head.setRotX(entityData.headPitch() * Constants.DEG_TO_RAD);
+            head.setRotY(entityData.netHeadYaw() * Constants.DEG_TO_RAD);
         }
     }
 }

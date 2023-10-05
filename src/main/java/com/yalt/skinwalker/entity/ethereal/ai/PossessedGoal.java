@@ -5,6 +5,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.ai.goal.Goal;
 
 public class PossessedGoal extends Goal {
+    private static final float MAX_LOOK_ANGLE = 10.0F;
+    private static final double MIN_DISTANCE = 12.0D;
+    
     private final Mob mob;
     private Player nearestPlayer;
     private final double followSpeed;
@@ -24,14 +27,14 @@ public class PossessedGoal extends Goal {
 
     @Override
     public void tick() {
-        this.mob.getLookControl().setLookAt(this.nearestPlayer, 10.0F, this.mob.getMaxHeadXRot());
+        this.mob.getLookControl().setLookAt(this.nearestPlayer, MAX_LOOK_ANGLE, this.mob.getMaxHeadXRot());
 
         double distanceToPlayer = this.mob.distanceTo(this.nearestPlayer);
 
-        if (distanceToPlayer > 12.0D) {
+        if (distanceToPlayer > MIN_DISTANCE) {
             // Move closer to maintain a minimum distance of 12 blocks
             this.mob.getNavigation().moveTo(this.nearestPlayer, this.followSpeed);
-        } else if (distanceToPlayer < 12.0D) {
+        } else if (distanceToPlayer < MIN_DISTANCE) {
             // Move away to maintain a minimum distance of 12 blocks
             double dx = this.mob.getX() - this.nearestPlayer.getX();
             double dz = this.mob.getZ() - this.nearestPlayer.getZ();

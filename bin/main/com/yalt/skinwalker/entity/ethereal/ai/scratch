@@ -1,0 +1,49 @@
+//    public void possess(Entity target) {
+//        if (target instanceof Mob mob) {
+//            System.out.println("Possessing entity");
+//            this.possessedEntity = target;
+//
+//            // Set Ethereal to invisible
+//            this.setInvisible(true);
+//
+//            try {
+//                Field goalSelectorField = Mob.class.getDeclaredField("goalSelector");
+//                goalSelectorField.setAccessible(true);
+//
+//                GoalSelector mobGoalSelector = (GoalSelector) goalSelectorField.get(mob);
+//
+//                // Save original goals if needed
+//                this.possessedGoal = new PossessedGoal(mob, mob.getSpeed(), 15.0f);
+//                mobGoalSelector.addGoal(0, possessedGoal);
+//
+//                // Add custom goals here
+//                // mobGoalSelector.addGoal(0, new PossessedGoal(mob, mob.getSpeed(), 15.0f));
+//
+//            } catch (NoSuchFieldException | IllegalAccessException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
+//
+//
+//    public void unpossess() {
+//        if (possessedEntity instanceof Mob mob) {
+//            try {
+//                Field goalSelectorField = Mob.class.getDeclaredField("goalSelector");
+//                goalSelectorField.setAccessible(true);
+//
+//                GoalSelector mobGoalSelector = (GoalSelector) goalSelectorField.get(mob);
+//
+//                if (this.possessedGoal != null) {
+//                    mobGoalSelector.removeGoal(possessedGoal); // Remove the custom goal
+//                }
+//
+//                // Reset Ethereal to visible
+//                this.setInvisible(false);
+//
+//                this.possessedEntity = null;
+//            } catch (NoSuchFieldException | IllegalAccessException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }

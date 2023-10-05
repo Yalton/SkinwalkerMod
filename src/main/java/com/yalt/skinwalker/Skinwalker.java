@@ -8,7 +8,6 @@ import com.yalt.skinwalker.sound.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.CowRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderers;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -24,16 +23,16 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 import software.bernie.geckolib.GeckoLib;
-
-import java.util.ArrayList;
-import java.util.List;
+// import net.minecraft.server.level.ServerPlayer;
+// import java.util.ArrayList;
+// import java.util.List;
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Skinwalker.MODID)
 public class Skinwalker {
     public static final String MODID = "skinwalker";
     private static final Logger LOGGER = LogUtils.getLogger();
-    private List<ServerPlayer> players = new ArrayList();
+    //private List<ServerPlayer> players = new ArrayList<>();
 
 
     public Skinwalker() {

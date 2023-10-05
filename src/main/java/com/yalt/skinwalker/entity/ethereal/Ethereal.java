@@ -1,10 +1,15 @@
 package com.yalt.skinwalker.entity.ethereal;
 
+import com.mojang.authlib.GameProfile;
 import com.yalt.skinwalker.entity.ethereal.ai.*;
+// import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
+import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
@@ -25,7 +30,10 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.util.FakePlayerFactory;
+
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -34,15 +42,27 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Ethereal extends Cow {
-    private static final EntityDataAccessor<Integer> BUDGET = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> REGEN = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> RADIUS = SynchedEntityData.defineId(Ethereal.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> BUDGET = SynchedEntityData.defineId(Ethereal.class,
+            EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> REGEN = SynchedEntityData.defineId(Ethereal.class,
+            EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> RADIUS = SynchedEntityData.defineId(Ethereal.class,
+            EntityDataSerializers.INT);
     private static final int BUDGET_UPDATE_INTERVAL = 600;
-
-
+    private static final double MAX_HEALTH = 100D;
+    private static final float ATTACK_DAMAGE = 8.0f;
+    private static final float ATTACK_SPEED = 4.0f;
+    private static final double KNOCKBACK_RESISTANCE = 0.8;
+    private static final float MOVEMENT_SPEED = 0.4f;
+    private static final int ACQUIRE_RANGE = 1000;
+    private static final int BUDGET_OFFSET = 1;
+    private static final int BUDGET_MAXIUM = 10;
+    private static final int BUDGET_MINIMUM = 0;
+    private static final double MINIMUM_HEALTH = 1.0;
+    private Player fakePlayer;
     // Instance variables
     private int budgetUpdateCounter = 0;
-    public Player target;
+    public Player targetPlayer;
     public Mob possessedEntity;
     public boolean hasPossessedEntity;
     public boolean updatedPossessedEntityGoals;
@@ -57,22 +77,53 @@ public class Ethereal extends Cow {
         super(entityType, level);
     }
 
+    public static boolean canSpawn(EntityType<Ethereal> entityType, LevelAccessor level, MobSpawnType spawnType,
+            BlockPos position, RandomSource random) {
+        // Check if there's already an entity of this type in the world
+        List<Ethereal> existingEntities = level.getEntitiesOfClass(Ethereal.class, new AABB(position).inflate(1000.0f));
+        if (!existingEntities.isEmpty()) {
+            return false;
+        }
+
+        // Allow the entity to spawn
+        return true;
+    }
+
+    @Override
+    public boolean shouldDespawnInPeaceful() {
+        // Get the nearest player
+        Player nearestPlayer = this.level().getNearestPlayer(this, 1000.0f);
+        if (nearestPlayer == null) {
+            return true;
+        }
+
+        // Check the distance to the nearest player
+        double distanceToPlayer = this.distanceTo(nearestPlayer);
+        if (distanceToPlayer > 100.0f) { // Replace 100.0f with the maximum distance you want
+            return true;
+        }
+
+        // Don't despawn if the player is close enough
+        return false;
+    }
+
     public static AttributeSupplier setAttributes() {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 100D)
-                .add(Attributes.ATTACK_DAMAGE, 8.0f)
-                .add(Attributes.ATTACK_SPEED, 4.0f)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.8)
-                .add(Attributes.MOVEMENT_SPEED, 0.4f).build();
+                .add(Attributes.MAX_HEALTH, MAX_HEALTH)
+                .add(Attributes.ATTACK_DAMAGE, ATTACK_DAMAGE)
+                .add(Attributes.ATTACK_SPEED, ATTACK_SPEED)
+                .add(Attributes.KNOCKBACK_RESISTANCE, KNOCKBACK_RESISTANCE)
+                .add(Attributes.MOVEMENT_SPEED, MOVEMENT_SPEED).build();
     }
 
     @Override
     protected void registerGoals() {
-        this.goalSelector.addGoal(1, new AggroGoal(this));
+        this.goalSelector.addGoal(1, new StayNearPlayerGoal(this));
+        this.goalSelector.addGoal(2, new AggroGoal(this));
         this.goalSelector.addGoal(2, new PossessGoal(this));
-        this.goalSelector.addGoal(3, new InvokeGoal(this));
-        this.goalSelector.addGoal(3, new SabotageGoal(this));
         this.goalSelector.addGoal(3, new CurseGoal(this));
+        this.goalSelector.addGoal(4, new SabotageGoal(this));
+        this.goalSelector.addGoal(5, new InvokeGoal(this));
     }
 
     @Override
@@ -87,37 +138,60 @@ public class Ethereal extends Cow {
     public void tick() {
         super.tick();
 
+        this.checkForOtherEntities();
         this.tryToAcquireTarget();
         this.updateGoalsIfNeeded();
         this.handleBudgetUpdate();
 
         // If Ethereal has possessed an entity, teleport to that entity's position
         if (hasPossessedEntity && possessedEntity != null) {
-            Vec3 position = possessedEntity.position();
-            this.teleportTo(position.x, position.y, position.z);
+            Vec3 position = this.position();
+            possessedEntity.teleportTo(position.x, position.y, position.z);
         }
 
-//        this.budgetUpdateCounter++;
-//
-//        // If 30 seconds have passed (600 ticks), update the budget and reset the counter
-//        if (this.budgetUpdateCounter >= 600) {
-//            updateBudget(1); // Add 1 to the budget
-//            this.budgetUpdateCounter = 0; // Reset the counter
-//        }
+        this.budgetUpdateCounter++;
+
+    }
+
+    @Override
+    public boolean hurt(DamageSource source, float amount) {
+        System.out.println("Entity was hurt");
+        boolean result = super.hurt(source, amount);
+        AggroGoal aggroGoal = new AggroGoal(this);
+        aggroGoal.start();
+
+        return result;
+    }
+
+    private void checkForOtherEntities() {
+        List<Entity> entities = this.level().getEntitiesOfClass(Entity.class, this.getBoundingBox().inflate(100));
+        for (Entity entity : entities) {
+            if (entity instanceof Ethereal || entity instanceof SkinWalkerEntity) {
+                if (!entity.equals(this)) {
+                    this.remove(Entity.RemovalReason.DISCARDED);
+                    break;
+                }
+            }
+        }
     }
 
     private void handleBudgetUpdate() {
         if (++budgetUpdateCounter >= BUDGET_UPDATE_INTERVAL) {
-            updateBudget(1);
+            updateBudget(BUDGET_OFFSET);
             budgetUpdateCounter = 0;
         }
     }
 
-    public boolean updateBudget(int offset) {
+    public void updateBudget(int offset) {
+
         int budget = this.entityData.get(BUDGET) + offset;
-        if (budget < 0) return false;
+
+        if (budget < BUDGET_MINIMUM || budget >= BUDGET_MAXIUM)
+            return;
+
+        System.out.println("Updating Budget to" + budget);
         this.entityData.set(BUDGET, budget);
-        return true;
+        return;
     }
 
     @Nullable
@@ -129,48 +203,33 @@ public class Ethereal extends Cow {
         var self = this.getUUID();
         return entities.stream()
                 .filter(e -> !e.getUUID().equals(self)) // Exclude self
-                .filter(e -> e.getHealth() > 1.0)
+                .filter(e -> e.getHealth() > MINIMUM_HEALTH)
                 .min(Comparator.comparingDouble(this::distanceToSqr))
                 .orElse(null);
     }
 
-//    public boolean updateBudget(int offset) {
-//        int budget = this.entityData.get(BUDGET) + offset;
-//        if (budget < 0) {
-//            return false;
-//        }
-//
-//        this.entityData.set(BUDGET, budget);
-//        return true;
-//    }
-
     public boolean hasBudget() {
-        return this.entityData.get(BUDGET) != 0;
+        return this.entityData.get(BUDGET) != BUDGET_MINIMUM;
     }
 
     public void tryToAcquireTarget() {
-        var acquireRange = 1000.0;
-        if (this.target != null && this.target.distanceToSqr(this) < acquireRange) {
+        if (this.targetPlayer != null && this.targetPlayer.distanceToSqr(this) < ACQUIRE_RANGE) {
             return;
         }
 
-        var cond = TargetingConditions.forNonCombat().range(acquireRange);
-        this.target = level().getNearestPlayer(cond, this);
+        var cond = TargetingConditions.forNonCombat().range(ACQUIRE_RANGE);
+        this.targetPlayer = level().getNearestPlayer(cond, this);
     }
-
+    
     @Nullable
     public Player getTarget() {
-        return this.target;
+        return this.targetPlayer;
     }
 
     @Nullable
     public boolean hasTarget() {
-//        System.out.println("target? " + (target != null));
-        return this.target != null;
-    }
-
-    public static boolean canSpawn(EntityType<Ethereal> entityType, LevelAccessor level, MobSpawnType spawnType, BlockPos position, RandomSource random) {
-        return false;
+        // System.out.println("target? " + (target != null));
+        return this.targetPlayer != null;
     }
 
     @Override
@@ -201,7 +260,6 @@ public class Ethereal extends Cow {
         return null;
     }
 
-
     public int getRadius() {
         return this.entityData.get(RADIUS);
     }
@@ -217,10 +275,8 @@ public class Ethereal extends Cow {
                 level.getChunkAt(block.north(16)),
                 level.getChunkAt(block.east(16)),
                 level.getChunkAt(block.south(16)),
-                level.getChunkAt(block.west(16))
-        );
+                level.getChunkAt(block.west(16)));
     }
-
 
     @Nullable
     public Stream<BlockEntity> getBlocks() {
@@ -234,11 +290,29 @@ public class Ethereal extends Cow {
 
     public synchronized void possess(Mob target) {
         if (target != null) {
-            this.setInvisible(true);
+            this.setInvisible(false);
             possessedEntity = target;
             hasPossessedEntity = true;
             updatedPossessedEntityGoals = false;
             this.queueGoalsToUpdate();
+
+            // Remove other goals from the possessed entity
+            if (possessedEntity.goalSelector != null) {
+                List<Goal> goalsToRemove = possessedEntity.goalSelector.getRunningGoals()
+                        .filter(goal -> !(goal.getGoal() instanceof PossessedGoal))
+                        .map(WrappedGoal::getGoal)
+                        .collect(Collectors.toList());
+
+                for (Goal goal : goalsToRemove) {
+                    possessedEntity.goalSelector.removeGoal(goal);
+                }
+            }
+
+            // Remove the fake player if it exists
+            if (this.fakePlayer != null) {
+                this.fakePlayer.remove(Entity.RemovalReason.DISCARDED);
+                this.fakePlayer = null;
+            }
         }
     }
 
@@ -252,12 +326,9 @@ public class Ethereal extends Cow {
         }
     }
 
-//    private final Set<Goal> goalsToAddQueue = new HashSet<>();
-//    private final Set<Goal> goalsToRemoveQueue = new HashSet<>();
-
-
     private boolean shouldAddPossessedGoal() {
-        // Add PossessedGoal if the entity was newly possessed and goals have not been updated
+        // Add PossessedGoal if the entity was newly possessed and goals have not been
+        // updated
         return hasPossessedEntity && !updatedPossessedEntityGoals;
     }
 
@@ -272,7 +343,8 @@ public class Ethereal extends Cow {
         if (!goalsToAddQueue.isEmpty() || !goalsToRemoveQueue.isEmpty()) {
             logger.info("Updating entity goals");
             if (this.possessedEntity != null && !updatedPossessedEntityGoals) {
-                List<Goal> currentGoals = new ArrayList<>(this.possessedEntity.goalSelector.getAvailableGoals().stream().map(WrappedGoal::getGoal).collect(Collectors.toList()));
+                List<Goal> currentGoals = new ArrayList<>(this.possessedEntity.goalSelector.getAvailableGoals().stream()
+                        .map(WrappedGoal::getGoal).collect(Collectors.toList()));
 
                 // Add goals
                 for (Goal goal : goalsToAddQueue) {
@@ -299,6 +371,34 @@ public class Ethereal extends Cow {
         }
     }
 
+    public void playEntitySound(SoundEvent soundEvent, float volume, float pitch) {
+        this.playSound(soundEvent, volume, pitch);
+    }
+
+    public void disguiseAsPlayer() {
+        Player targetPlayer = this.getTarget();
+        if (targetPlayer != null) {
+            GameProfile gameProfile = new GameProfile(UUID.randomUUID(), targetPlayer.getName().getString());
+
+            // Delay the execution of the disguiseAsPlayer method
+            this.level().getServer().execute(() -> {
+                // Remove the fake player if it exists
+                if (this.fakePlayer != null) {
+                    this.fakePlayer.remove(Entity.RemovalReason.DISCARDED);
+                    this.fakePlayer = null;
+                }
+
+                this.fakePlayer = FakePlayerFactory.get((ServerLevel) this.level(), gameProfile);
+                this.fakePlayer.copyPosition(this);
+                this.level().addFreshEntity(this.fakePlayer);
+            });
+        }
+    }
+
+    public Player getFakePlayer() {
+        return this.fakePlayer;
+    }
+
     public synchronized void queueGoalsToUpdate() {
         if (shouldAddPossessedGoal()) {
             if (this.possessedGoal == null) {
@@ -312,7 +412,10 @@ public class Ethereal extends Cow {
 
     public boolean hasBetterTarget() {
         Animal nearestAnimal = getNearestAnimal();
-        return nearestAnimal != null && this.distanceToSqr(nearestAnimal) < this.distanceToSqr(possessedEntity);
+        if (nearestAnimal != null && possessedEntity != null) {
+            return this.distanceToSqr(nearestAnimal) < this.distanceToSqr(possessedEntity);
+        }
+        return false;
     }
 
     public Entity getPossessedEntity() {
