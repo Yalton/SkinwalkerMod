@@ -1,15 +1,11 @@
 package com.yalt.skinwalker.entity.ethereal;
 
-import com.mojang.authlib.GameProfile;
 import com.yalt.skinwalker.entity.ethereal.ai.*;
-// import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
 import com.yalt.skinwalker.entity.walker.SkinWalkerEntity;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
@@ -32,8 +28,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.util.FakePlayerFactory;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -78,7 +72,7 @@ public class Ethereal extends Cow {
     }
 
     public static boolean canSpawn(EntityType<Ethereal> entityType, LevelAccessor level, MobSpawnType spawnType,
-            BlockPos position, RandomSource random) {
+                                   BlockPos position, RandomSource random) {
         // Check if there's already an entity of this type in the world
         List<Ethereal> existingEntities = level.getEntitiesOfClass(Ethereal.class, new AABB(position).inflate(1000.0f));
         if (!existingEntities.isEmpty()) {
@@ -220,7 +214,7 @@ public class Ethereal extends Cow {
         var cond = TargetingConditions.forNonCombat().range(ACQUIRE_RANGE);
         this.targetPlayer = level().getNearestPlayer(cond, this);
     }
-    
+
     @Nullable
     public Player getTarget() {
         return this.targetPlayer;
@@ -375,29 +369,35 @@ public class Ethereal extends Cow {
         this.playSound(soundEvent, volume, pitch);
     }
 
-    public void disguiseAsPlayer() {
-        Player targetPlayer = this.getTarget();
-        if (targetPlayer != null) {
-            GameProfile gameProfile = new GameProfile(UUID.randomUUID(), targetPlayer.getName().getString());
+    // public void disguiseAsPlayer() {
+    //     Player targetPlayer = this.getTarget();
+    //     if (targetPlayer != null) {
+    //         GameProfile gameProfile = new GameProfile(UUID.randomUUID(), targetPlayer.getName().getString());
 
-            // Delay the execution of the disguiseAsPlayer method
-            this.level().getServer().execute(() -> {
-                // Remove the fake player if it exists
-                if (this.fakePlayer != null) {
-                    this.fakePlayer.remove(Entity.RemovalReason.DISCARDED);
-                    this.fakePlayer = null;
-                }
+    //         // Delay the execution of the disguiseAsPlayer method
+    //         this.level().getServer().execute(() -> {
+    //             // Remove the fake player if it exists
+    //             if (this.fakePlayer != null) {
+    //                 this.fakePlayer.remove(Entity.RemovalReason.DISCARDED);
+    //                 this.fakePlayer = null;
+    //             }
 
-                this.fakePlayer = FakePlayerFactory.get((ServerLevel) this.level(), gameProfile);
-                this.fakePlayer.copyPosition(this);
-                this.level().addFreshEntity(this.fakePlayer);
-            });
-        }
-    }
+    //             this.fakePlayer = FakePlayerFactory.get((ServerLevel) this.level(), gameProfile);
+    //             this.fakePlayer.copyPosition(this);
 
-    public Player getFakePlayer() {
-        return this.fakePlayer;
-    }
+    //             // Add player info to the server before adding the entity
+    //             // PlayerInfoPacket cannot be resolved to a type, so we need to import it or use the fully qualified name
+    //             net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket addPlayerPacket = new net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket(net.minecraft.network.protocol.game.ClientboundPlayerInfoPacket.Action.ADD_PLAYER, this.fakePlayer);
+    //             ((ServerLevel) this.level()).getServer().getPlayerList().broadcastAll(addPlayerPacket);
+
+    //             this.level().addFreshEntity(this.fakePlayer);
+    //         });
+    //     }
+    // }
+
+    // public Player getFakePlayer() {
+    //     return this.fakePlayer;
+    // }
 
     public synchronized void queueGoalsToUpdate() {
         if (shouldAddPossessedGoal()) {

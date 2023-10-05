@@ -5,7 +5,6 @@ import com.yalt.skinwalker.sound.ModSounds;
 import com.yalt.skinwalker.entity.ethereal.Ethereal;
 import com.yalt.skinwalker.entity.ModEntityTypes;
 import net.minecraft.world.entity.EntityType;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
@@ -15,9 +14,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 import java.util.Random;
+
 public class ChaseGoal extends Goal {
     private final SkinWalkerEntity mob;
     private long lastSoundTime = 0;
@@ -34,6 +33,24 @@ public class ChaseGoal extends Goal {
         this.speed = speed;
     }
 
+    private Player getClosestPlayer() {
+        Level level = mob.level();
+        List<Player> players = level.getEntitiesOfClass(Player.class, mob.getBoundingBox().inflate(MAX_DISTANCE));
+        Player closestPlayer = null;
+        double closestDistance = Double.MAX_VALUE;
+
+        for (Player player : players) {
+            double distance = mob.distanceToSqr(player);
+
+            if (distance < closestDistance) {
+                closestPlayer = player;
+                closestDistance = distance;
+            }
+        }
+
+        return closestPlayer;
+    }
+
     @Override
     public boolean canUse() {
         return true; // Always able to use this goal
@@ -41,6 +58,7 @@ public class ChaseGoal extends Goal {
 
     @Override
     public void start() {
+        this.target = getClosestPlayer();
         if (this.transformIntoEthereal) {
             // Code to make the entity walk away
             Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level());
@@ -66,13 +84,14 @@ public class ChaseGoal extends Goal {
     @Override
     public void tick() {
         if (target == null) {
+            this.transformIntoEthereal = true;
             return;
         }
 
         double distanceToTarget = mob.distanceToSqr(this.target);
 
         if (System.currentTimeMillis() - chaseStartTime > 240000 || distanceToTarget > MAX_DISTANCE
-                || transformIntoEthereal) {
+                || this.transformIntoEthereal) {
             Ethereal etherealEntity = new Ethereal(EtherealEntityType, mob.level());
             transform(etherealEntity);
             return;
@@ -122,12 +141,14 @@ public class ChaseGoal extends Goal {
             for (int x = -1; x <= 1; x++) {
                 for (int z = -1; z <= 1; z++) {
                     // Calculate the block position
-                    BlockPos blockInPath = new BlockPos((int) (mobPos.getX() + deltaX + x), (int) (mobPos.getY() + deltaY + y),
+                    BlockPos blockInPath = new BlockPos((int) (mobPos.getX() + deltaX + x),
+                            (int) (mobPos.getY() + deltaY + y),
                             (int) (mobPos.getZ() + deltaZ + z));
                     BlockState blockState = level.getBlockState(blockInPath);
 
                     // If the block is not air and can be destroyed, destroy it with a 20% chance
-                    if (!blockState.isAir() && blockState.getDestroySpeed(level, blockInPath) >= 0 && random.nextFloat() < 0.05) {
+                    if (!blockState.isAir() && blockState.getDestroySpeed(level, blockInPath) >= 0
+                            && random.nextFloat() < 0.05) {
                         // Destroy the block and drop the item
                         level.destroyBlock(blockInPath, true);
                     }

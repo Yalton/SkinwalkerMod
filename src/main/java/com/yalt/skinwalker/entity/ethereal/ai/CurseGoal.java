@@ -27,8 +27,7 @@ public class CurseGoal extends EtherealGoal {
     private static final int MAKE_PLAYER_HUNGRY_DURATION = 2400; // 2 minutes
     private static final int RANDOM_TELEPORT_RANGE = 10; // Range for random teleportation
     private static final int DISTORT_VISION_DURATION = 400; // 20 seconds
-    public boolean usedAbility = false; 
-
+    public boolean usedAbility = false;
 
     public CurseGoal(Ethereal ethereal) {
         super(ethereal);
@@ -45,7 +44,7 @@ public class CurseGoal extends EtherealGoal {
 
     @Override
     public void start() {
-        this.usedAbility = false; 
+        this.usedAbility = false;
         Random random = new Random();
         int randomNumber = random.nextInt(10) + 1; // Increase the range to include the new methods
 
@@ -56,7 +55,7 @@ public class CurseGoal extends EtherealGoal {
                 return;
             }
             case 2 -> {
-                 this.usedAbility = this.buffEnemy();
+                this.usedAbility = this.buffEnemy();
                 return;
             }
             case 3 -> {
@@ -92,11 +91,13 @@ public class CurseGoal extends EtherealGoal {
                 return;
             }
         }
-        if (this.usedAbility == true)
-        {
+        if (this.usedAbility == true) {
             lastUsageTime = System.currentTimeMillis();
             ethereal.updateBudget(CURSE_COST);
             this.playNoise();
+            return;
+        } else {
+            this.start();
         }
     }
 
@@ -157,7 +158,7 @@ public class CurseGoal extends EtherealGoal {
         Player player = this.ethereal.getTarget();
         if (player != null) {
             player.addEffect(new MobEffectInstance(MobEffects.DARKNESS, BLIND_PLAYER_DURATION)); // Blind player for 20
-                                                                                                  // Seconds
+                                                                                                 // Seconds
             return true;
         }
         return false;

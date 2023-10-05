@@ -18,10 +18,6 @@ public class PossessGoal extends EtherealGoal {
     public boolean canUse() {
         // If Ethereal has budget and (Ethereal has no possessed entity or Ethereal has a better target)
         if (ethereal.hasBudget() && (ethereal.getPossessedEntity() == null || ethereal.hasBetterTarget())) {
-            if (this.ethereal.getFakePlayer() == null && !ethereal.hasBetterTarget()) {
-                this.ethereal.disguiseAsPlayer();
-                return false;
-            }
             return true;
         }
         return false;

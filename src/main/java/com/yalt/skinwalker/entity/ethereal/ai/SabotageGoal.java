@@ -83,6 +83,10 @@ public class SabotageGoal extends EtherealGoal {
             lastUsageTime = System.currentTimeMillis();
             ethereal.updateBudget(SABOTAGE_COST);
             this.playNoise();
+            return;
+        }
+        else{
+            this.start();
         }
     }
 
